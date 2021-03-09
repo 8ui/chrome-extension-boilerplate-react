@@ -16,7 +16,7 @@ export const Store = types
         chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
           const { url } = tabs[0];
           if (!url.match(/^https:\/\/taskpays\.com/)) {
-            chrome.tabs.create({ url: 'https://taskpays.com/user/default.aspx' });
+            chrome.tabs.create({ url: 'https://taskpays.com/user/earn/youtube.aspx?start=1' });
           }
         });
       }
