@@ -5,6 +5,8 @@ const StoreInitialState = {
   active: false,
 }
 
+const startUrl = 'https://taskpays.com/user/earn/youtube.aspx?start=1'
+
 export const Store = types
   .model({
     active: types.boolean,
@@ -13,10 +15,12 @@ export const Store = types
     switchActive() {
       self.active = !self.active;
       if (self.active) {
-        chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
-          const { url } = tabs[0];
-          if (!url.match(/^https:\/\/taskpays\.com/)) {
-            chrome.tabs.create({ url: 'https://taskpays.com/user/earn/youtube.aspx?start=1' });
+        chrome.tabs.query({active: true, currentWindow: true}, ([tab]) => {
+          console.log('tab', tab);
+          if (tab.url.match(/^https:\/\/taskpays\.com/)) {
+            chrome.tabs.update(tab.id, {url: startUrl});
+          } else {
+            chrome.tabs.create({ url: startUrl });
           }
         });
       }

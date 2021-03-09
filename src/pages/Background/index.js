@@ -13,7 +13,8 @@ chrome.runtime.onConnect.addListener(function(p){
 });
 
 chrome.storage.onChanged.addListener(function(changes, namespace) {
+  console.log('@background', 'chrome.storage.onChanged');
   chrome.storage.sync.get(null, function(store) {
-    port.postMessage(store);
+    if (port) port.postMessage(store);
   });
 });

@@ -8,7 +8,9 @@ const Popup = () => {
 
   return (
     <div className="App">
-      <button onClick={() => Store.switchActive()}>{Store.active ? 'Активно' : 'Не активно'}</button>
+      <button onClick={() => Store.switchActive()}>
+        {Store.active ? 'Выключить' : 'Включить просмотр'}
+      </button>
     </div>
   );
 };

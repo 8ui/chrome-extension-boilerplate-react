@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 let active;
+const idErrorPanel = 'ctl00_PageMainContent_ErrorMessagePanel'
 
 const onInit = () => {
   initMainPage();
@@ -20,6 +21,7 @@ const checkVideoPage = () => {
 }
 
 const playNextVideo = () => {
+  if (document.getElementById(idErrorPanel)) active = false;
   if (active) {
     console.trace('@playNextVideo');
     const {href} = document.getElementsByClassName('YouTubeLink')[0]
@@ -27,7 +29,7 @@ const playNextVideo = () => {
   }
 }
 
-function GetParameterValues(param) {
+const GetParameterValues = (param) => {
   const url = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
   for (let i = 0; i < url.length; i++) {
     const urlParam = url[i].split('=');
