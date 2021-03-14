@@ -5,25 +5,59 @@ const idErrorPanel = 'ctl00_PageMainContent_ErrorMessagePanel'
 
 const onInit = () => {
   initMainPage();
+  sendLeftMovie();
+  sendMessage({type: "storage"});
+
   window.addEventListener("message", function({ data: {event, payload}, ...props }) {
     if (!checkVideoPage()) return false;
     if (event === 'inject') {
-      const {active} = payload;
-      console.log(['inject'], active, payload);
+      console.log('inject', {event, payload});
+      active = payload.active;
+      if (active) checkAfterLoginPage();
       if (active) startCounter();
       else stopCounter();
     }
   });
 }
 
+const sendMessage = (payload) => {
+  const data = {
+    event: 'content',
+    payload
+  }
+  console.log('postMessage', data);
+  window.postMessage(data, "*");
+}
+
+const sendLeftMovie = async() => {
+  await sleep(1000);
+  const block = document
+    .getElementsByClassName('hidden-nav-function-minify hidden-nav-function-top')[0]
+  const count = block ? block.innerText : ''
+  const payload = {
+    type: 'badge',
+    payload: count,
+  }
+  sendMessage(payload)
+}
+
 const checkVideoPage = () => {
   return window.location.href.match(/youtube.aspx\?v\=/);
 }
 
+const checkPageErrors = () => {
+  const panel = document.getElementById(idErrorPanel);
+  if (panel) {
+    if (panel.innerText !== "You already have been credited for this video.") {
+      return true;
+    }
+  }
+  return false;
+}
+
 const playNextVideo = () => {
-  if (document.getElementById(idErrorPanel)) active = false;
+  if (checkPageErrors()) active = false;
   if (active) {
-    console.trace('@playNextVideo');
     const {href} = document.getElementsByClassName('YouTubeLink')[0]
     if (href) window.location.href = href;
   }
@@ -42,9 +76,15 @@ const GetParameterValues = (param) => {
 const initMainPage = () => {
   const start = GetParameterValues("start");
   if (!checkVideoPage() && start) {
-    console.log('@initMainPage');
     active = true;
     playNextVideo();
+  }
+}
+
+const checkAfterLoginPage = () => {
+  const afterlogin = GetParameterValues("afterlogin");
+  if (afterlogin) {
+    window.location.href = 'https://taskpays.com/user/earn/youtube.aspx?start=1';
   }
 }
 
@@ -68,7 +108,7 @@ const startCounter = () => {
   const nextVideoInterval = setInterval(async() => {
     if (window.credited) {
       clearInterval(nextVideoInterval);
-      await sleep(1500);
+      await sleep(5000);
       playNextVideo();
     }
   }, 1000);

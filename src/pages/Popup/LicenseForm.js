@@ -1,5 +1,9 @@
 import React from "react"
 import { useMst } from './core/store';
+import Button from '@material-ui/core/Button';
+import TextField from '@material-ui/core/TextField';
+
+
 
 const LicenseForm = () => {
   const Store = useMst();
@@ -17,22 +21,34 @@ const LicenseForm = () => {
     }
     setLoading(false);
   }
+  const handleChange = ({target}) => {
+    setLicense(target.value)
+    if (error) setError(false);
+  }
   return (
-    <form onSubmit={handleSubmit} className="license-form">
-      <div><label htmlFor='license'>Введите лицензию</label></div>
-      {error ? <div className="error">{error}</div> : null}
+    <form autoComplete="off" onSubmit={handleSubmit} className="license-form">
       <div>
-        <input
+        <TextField
           id="license"
-          type="text"
-          onChange={({target}) => setLicense(target.value)}
-          placeholder=""
+          label="Введите лицензию"
+          variant="outlined"
+          onChange={handleChange}
           disabled={loading}
+          error={Boolean(error)}
+          helperText={error}
+          InputProps={{
+            style: {width: 300}
+          }}
         />
       </div>
-      <button type="submit" disabled={loading}>
+      <Button
+        type="submit"
+        color="primary"
+        variant="contained"
+        disabled={loading}
+      >
         {loading ? 'Загрузка' : 'Применить'}
-      </button>
+      </Button>
     </form>
   )
 }

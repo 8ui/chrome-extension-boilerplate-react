@@ -4,13 +4,6 @@
   align-items: center;
   justify-content: center;
 }
-button {
-  padding: 10px 15px;
-  font-size: 18px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  cursor: pointer;
-}
 .license-form {
   flex: 1;
   padding: 5px;
@@ -21,22 +14,4 @@ button {
 }
 .license-form > div {
   padding-bottom: 15px;
-}
-.license-form input {
-  border-radius: 5px;
-  padding: 10px 15px;
-  display: block;
-  border: 1px solid #ccc;
-  width: 100%;
-}
-.license-form .error {
-  color: red;
-}
-.footer {
-  padding: 5px;
-  opacity: 0.5;
-  display: flex;
-}
-.footer > div {
-  flex: 1;
 }

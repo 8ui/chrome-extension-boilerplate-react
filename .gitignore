@@ -19,3 +19,6 @@
 
 # secrets
 secrets.*.js
+
+/taskpays-clicker
+/taskpays-clicker.zip

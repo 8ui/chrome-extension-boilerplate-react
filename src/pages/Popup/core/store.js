@@ -1,20 +1,59 @@
 import {useContext, createContext} from "react";
-import { flow, onSnapshot, types } from 'mobx-state-tree';
+import { applySnapshot, flow, onSnapshot, types } from 'mobx-state-tree';
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import {Fetch} from './utils'
+import { uuid } from './uuid';
+
+dayjs.extend(utc)
 
 const StoreInitialState = {
+  deviceUuid: uuid(),
   active: false,
-  totalDevices: 0,
+  version: '0.0.1',
+  newVersion: '0.0.1',
+  license: {},
+  device: {},
   freeDevices: 0,
 }
 
 const startUrl = 'https://taskpays.com/user/earn/youtube.aspx?start=1'
 
+const License = types
+  .model({
+    id: types.optional(types.string, ''),
+    key: types.optional(types.string, ''),
+    devices: types.optional(types.number, 0),
+    active: types.optional(types.boolean, false),
+    dateActivated: types.optional(types.string, ''),
+    expires: types.optional(types.string, ''),
+    type: types.optional(types.string, ''),
+  })
+  .views(self => ({
+    get getExpireDate() {
+      if (self.expires) {
+        const date = dayjs.utc(self.expires).utcOffset(1, true);
+        return date.format("DD/MM/YY HH:mm")
+      }
+      return '-';
+    },
+    get getType() {
+      return self.type === 'trial' ? 'Пробная' : 'Платная'
+    }
+  }))
+
 export const Store = types
   .model({
+    deviceUuid: types.string,
     active: types.boolean,
-    license: types.optional(types.string, ''),
-    deviceId: types.optional(types.string, ''),
-    totalDevices: types.optional(types.number, 0),
+    version: types.string,
+    newVersion: types.string,
+    license: License,
+    device: types.model({
+      id: types.optional(types.string, ''),
+      meta: types.optional(types.string, ''),
+      license: types.optional(types.string, ''),
+    }),
     freeDevices: types.optional(types.number, 0),
   })
   .actions(self => ({
@@ -32,34 +71,50 @@ export const Store = types
       }
     },
     registerDevice: flow(function * registerDevice(license) {
-      const myHeaders = new Headers();
-      myHeaders.append("Content-Type", "application/json");
-      let data = yield fetch('http://localhost:8081/v2/device/register', {
+      const data = yield self.fetch('/device/register', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           meta: navigator.userAgent,
+          deviceUuid: self.deviceUuid,
           license,
-        }),
-        headers: myHeaders,
+        },
       })
-      data = yield data.json();
       if (data.message) throw new Error(data.message);
-      if (data._id) {
-        self.license = license;
-        self.totalDevices = data.totalDevices;
+      if (data.device) {
+        applySnapshot(self.license, data.license)
+        applySnapshot(self.device, data.device)
         self.freeDevices = data.freeDevices;
-        self.deviceId = data._id;
+        self.version = yield self.getVersion();
+        self.newVersion = self.version;
       }
       return data;
     }),
-    checkLicense: flow(function * checkLicense() {
-      const myHeaders = new Headers();
-      myHeaders.append("Content-Type", "application/json");
-      let data = yield fetch(`http://localhost:8081/v2/license/${self.license}`, {
-        headers: myHeaders,
-      })
-      data = yield data.json();
-      console.log('checkLicense', data);
+    checkDevice: flow(function * checkLicense() {
+      if (self.license.id) {
+        try {
+          const { license, device, freeDevices } = yield self.fetch(`/device/check/${self.deviceUuid}`);
+          applySnapshot(self.license, license)
+          applySnapshot(self.device, device)
+          self.freeDevices = freeDevices;
+          self.newVersion = yield self.getVersion();
+        } catch (e) {
+          console.log('e', e);
+          applySnapshot(self.license, {})
+          applySnapshot(self.device, {})
+          self.freeDevices = 0;
+        }
+      } else {
+        throw new Error('License not found');
+      }
+    }),
+    getVersion: flow(function * getVersion() {
+      const {version} = yield self.fetch('/version');
+      console.log('version', version);
+      // if (version) self.version = version;
+      return version;
+    }),
+    fetch: flow(function * fetch(url, params) {
+      return Fetch(url, { ...params, headers: { license: self.license.key } })
     })
   }));
 
@@ -70,7 +125,11 @@ export const initStorage = async() => {
     });
   })
 
-  storage = Object.keys(storage).length > 0 ? storage : StoreInitialState;
+  storage = {
+    ...StoreInitialState,
+    // deviceUuid: storage.deviceUuid,
+    ...(storage || {}),
+  };
 
   const rootStore = Store.create(storage);
 

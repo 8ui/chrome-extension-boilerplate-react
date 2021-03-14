@@ -36,20 +36,20 @@ if (fileSystem.existsSync(secretsPath)) {
 var options = {
   mode: process.env.NODE_ENV || 'development',
   entry: {
-    newtab: path.join(__dirname, 'src', 'pages', 'Newtab', 'index.jsx'),
-    options: path.join(__dirname, 'src', 'pages', 'Options', 'index.jsx'),
-    popup: path.join(__dirname, 'src', 'pages', 'Popup', 'index.jsx'),
+    // newtab: path.join(__dirname, 'src', 'pages', 'Newtab', 'index.js'),
+    options: path.join(__dirname, 'src', 'pages', 'Options', 'index.js'),
+    popup: path.join(__dirname, 'src', 'pages', 'Popup', 'index.js'),
     background: path.join(__dirname, 'src', 'pages', 'Background', 'index.js'),
     contentScript: path.join(__dirname, 'src', 'pages', 'Content', 'index.js'),
     devtools: path.join(__dirname, 'src', 'pages', 'Devtools', 'index.js'),
-    panel: path.join(__dirname, 'src', 'pages', 'Panel', 'index.jsx'),
+    panel: path.join(__dirname, 'src', 'pages', 'Panel', 'index.js'),
     inject: path.join(__dirname, 'src', 'pages', 'Inject', 'index.js'),
   },
   chromeExtensionBoilerplate: {
     notHotReload: ['inject', 'contentScript', 'devtools'],
   },
   output: {
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, 'taskpays-clicker'),
     filename: '[name].bundle.js',
     publicPath: ASSET_PATH,
   },
@@ -89,7 +89,10 @@ var options = {
       },
       { test: /\.(ts|tsx)$/, loader: 'ts-loader', exclude: /node_modules/ },
       {
-        test: /\.(js|jsx)$/,
+        test: /\.m?js/,
+        resolve: {
+          fullySpecified: false
+        },
         use: [
           {
             loader: 'source-map-loader',
@@ -110,7 +113,7 @@ var options = {
   },
   plugins: [
     new webpack.ProgressPlugin(),
-    // clean the build folder
+    // clean the taskpays-clicker folder
     new CleanWebpackPlugin({
       verbose: true,
       cleanStaleWebpackAssets: true,
@@ -121,7 +124,7 @@ var options = {
       patterns: [
         {
           from: 'src/manifest.json',
-          to: path.join(__dirname, 'build'),
+          to: path.join(__dirname, 'taskpays-clicker'),
           force: true,
           transform: function (content, path) {
             // generates the manifest file using the package.json informations
@@ -136,20 +139,20 @@ var options = {
         },
       ],
     }),
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: 'src/pages/Content/content.styles.css',
-          to: path.join(__dirname, 'build'),
-          force: true,
-        },
-      ],
-    }),
+    // new CopyWebpackPlugin({
+    //   patterns: [
+    //     {
+    //       from: 'src/pages/Content/content.styles.css',
+    //       to: path.join(__dirname, 'taskpays-clicker'),
+    //       force: true,
+    //     },
+    //   ],
+    // }),
     new CopyWebpackPlugin({
       patterns: [
         {
           from: 'src/assets/img/icon-128.png',
-          to: path.join(__dirname, 'build'),
+          to: path.join(__dirname, 'taskpays-clicker'),
           force: true,
         },
       ],
@@ -158,7 +161,7 @@ var options = {
       patterns: [
         {
           from: 'src/assets/img/icon-34.png',
-          to: path.join(__dirname, 'build'),
+          to: path.join(__dirname, 'taskpays-clicker'),
           force: true,
         },
       ],
