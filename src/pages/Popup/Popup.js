@@ -12,7 +12,7 @@ import LicenseInfo from './LicenseInfo';
 
 const Popup = () => {
   const Store = useMst()
-
+  console.log('Store', Store.toJSON());
   React.useEffect(() => {
     (async() => {
       try {

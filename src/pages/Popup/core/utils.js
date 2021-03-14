@@ -1,6 +1,6 @@
 import {ISDEV} from "./constants"
 
-const host = ISDEV ? 'localhost:8081' : '8ui.ru'
+const host = ISDEV ? 'localhost:8081' : '213.139.208.207'
 
 export const Fetch = async(url, params = {}) => {
   const { method = 'GET', body, headers = {} } = params

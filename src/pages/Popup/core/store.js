@@ -28,12 +28,13 @@ const License = types
     dateActivated: types.optional(types.string, ''),
     expires: types.optional(types.string, ''),
     type: types.optional(types.string, ''),
+    maxMovieClick: types.optional(types.number, 0),
   })
   .views(self => ({
     get getExpireDate() {
       if (self.expires) {
         const date = dayjs.utc(self.expires).utcOffset(1, true);
-        return date.format("DD/MM/YY HH:mm")
+        return date.format("DD/MM/YYYY HH:mm")
       }
       return '-';
     },
@@ -48,6 +49,7 @@ export const Store = types
     active: types.boolean,
     version: types.string,
     newVersion: types.string,
+    viewed: types.optional(types.number, 0),
     license: License,
     device: types.model({
       id: types.optional(types.string, ''),
@@ -86,22 +88,27 @@ export const Store = types
         self.freeDevices = data.freeDevices;
         self.version = yield self.getVersion();
         self.newVersion = self.version;
+        self.viewed = data.viewed;
       }
       return data;
     }),
     checkDevice: flow(function * checkLicense() {
       if (self.license.id) {
         try {
-          const { license, device, freeDevices } = yield self.fetch(`/device/check/${self.deviceUuid}`);
+          const { license, device, freeDevices, viewed } = yield self.fetch(`/device/check/${self.deviceUuid}`);
           applySnapshot(self.license, license)
           applySnapshot(self.device, device)
           self.freeDevices = freeDevices;
           self.newVersion = yield self.getVersion();
+          self.viewed = viewed;
         } catch (e) {
           console.log('e', e);
-          applySnapshot(self.license, {})
-          applySnapshot(self.device, {})
-          self.freeDevices = 0;
+          if (e?.code === 404) {
+            applySnapshot(self.license, {})
+            applySnapshot(self.device, {})
+            self.freeDevices = 0;
+            self.viewed = 0;
+          }
         }
       } else {
         throw new Error('License not found');

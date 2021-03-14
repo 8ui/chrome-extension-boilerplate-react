@@ -20,7 +20,7 @@ const NewVersion = () => {
       <Alert
         className={classes.root}
         action={
-          <Button color="inherit" size="small">
+          <Button href="http://8ui.ru/taskpays-clicker.zip" target="_blank" color="inherit" size="small">
             СКАЧАТЬ
           </Button>
         }

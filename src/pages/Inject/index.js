@@ -1,24 +1,29 @@
 /* eslint-disable */
 
 let active;
-const idErrorPanel = 'ctl00_PageMainContent_ErrorMessagePanel'
+let counter = 0;
+let storage = {}
+let leftMovieCount = 0;
+const idErrorPanel = 'alert-danger'
+const idSuccessPanel = 'alert-success'
+const idEmailPanel = "#navbarSupportedContent > ul > li.line-height.pt-3 > div > div > div > div.bg-primary.p-3 > span"
 
-const onInit = () => {
+const onInit = async() => {
   initMainPage();
-  sendLeftMovie();
   sendMessage({type: "storage"});
-
-  window.addEventListener("message", function({ data: {event, payload}, ...props }) {
-    if (!checkVideoPage()) return false;
-    if (event === 'inject') {
-      console.log('inject', {event, payload});
-      active = payload.active;
-      if (active) checkAfterLoginPage();
-      if (active) startCounter();
-      else stopCounter();
-    }
-  });
+  await sendLeftMovie();
 }
+
+window.addEventListener("message", function({ data: {event, payload}, ...props }) {
+  if (!checkVideoPage()) return false;
+  if (event === 'inject') {
+    console.log('pong.inject', {event, payload});
+    storage = payload;
+    if (storage.active) checkAfterLoginPage();
+    if (storage.active) startCounter();
+    else stopCounter();
+  }
+});
 
 const sendMessage = (payload) => {
   const data = {
@@ -33,6 +38,7 @@ const sendLeftMovie = async() => {
   await sleep(1000);
   const block = document
     .getElementsByClassName('hidden-nav-function-minify hidden-nav-function-top')[0]
+  leftMovieCount = block ? Number(block) : 0;
   const count = block ? block.innerText : ''
   const payload = {
     type: 'badge',
@@ -45,21 +51,33 @@ const checkVideoPage = () => {
   return window.location.href.match(/youtube.aspx\?v\=/);
 }
 
-const checkPageErrors = () => {
-  const panel = document.getElementById(idErrorPanel);
-  if (panel) {
-    if (panel.innerText !== "You already have been credited for this video.") {
-      return true;
-    }
+const viewedMovieError = () => {
+  const panel = document.getElementsByClassName(idErrorPanel);
+  if (panel?.[0]?.innerText === "You already have been credited for this video.") {
+    return true;
   }
   return false;
 }
 
-const playNextVideo = () => {
-  if (checkPageErrors()) active = false;
+const checkPageErrors = () => {
+  const panel = document.getElementsByClassName(idErrorPanel);
+  if (panel.length) {
+    return !viewedMovieError();
+  }
+  return false;
+}
+
+const checkPageSuccess = () => {
+  return viewedMovieError() || document.getElementsByClassName(idSuccessPanel).length > 0;
+}
+
+const playNextVideo = async() => {
+  if (checkPageErrors() && leftMovieCount <= 0) active = false;
   if (active) {
-    const {href} = document.getElementsByClassName('YouTubeLink')[0]
-    if (href) window.location.href = href;
+    if ((await setViewed())) {
+      const {href} = document.getElementsByClassName('YouTubeLink')[0]
+      if (href) window.location.href = href;
+    }
   }
 }
 
@@ -106,12 +124,42 @@ const startCounter = () => {
   }, 100);
 
   const nextVideoInterval = setInterval(async() => {
-    if (window.credited) {
+    if (window.credited && checkPageSuccess()) {
       clearInterval(nextVideoInterval);
-      await sleep(5000);
+      // await sleep(500);
       playNextVideo();
     }
+    if (counter >= 60) {
+      clearInterval(nextVideoInterval);
+      playNextVideo();
+    }
+    counter += 1;
   }, 1000);
+}
+
+const setViewed = async() => {
+  try {
+    console.log('document.querySelector(idEmailPanel)', document.querySelector(idEmailPanel));
+    const movieId = GetParameterValues("v");
+    if (!movieId) return true;
+    let r = await window.fetch('http://localhost:8081/v2/viewed', {
+      method: 'POST',
+      body: JSON.stringify({
+        movieId,
+        license: storage.license.id,
+        deviceUuid: storage.deviceUuid,
+        email: document.querySelector(idEmailPanel)?.innerText,
+      }),
+      headers: {
+        "Content-type": "application/json",
+      }
+    })
+    r = await r.json();
+    if (r.code === 400) return false;
+  }  catch (e) {
+    return true;
+  }
+  return true;
 }
 
 const stopCounter = () => {
@@ -121,7 +169,7 @@ const stopCounter = () => {
 
 const onblur = async() => {
   console.log('@window.onblur');
-  if (window.player) {
+  if (window.player && active) {
     await sleep(50)
     window.player.playVideo();
     window.is_visible_focus = true;

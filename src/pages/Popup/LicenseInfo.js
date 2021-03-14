@@ -18,7 +18,7 @@ const useStyles = makeStyles(theme => ({
 
 const LicenseInfo = () => {
   const classes = useStyles()
-  const { license } = useMst();
+  const { license, viewed } = useMst();
   if (!license.id) return null;
 
   return (
@@ -47,6 +47,14 @@ const LicenseInfo = () => {
             </TableCell>
             <TableCell align="right">
               {license.getExpireDate}
+            </TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell component="th" scope="row">
+              Просмотрено видео
+            </TableCell>
+            <TableCell align="right">
+              {viewed} / {license.maxMovieClick}
             </TableCell>
           </TableRow>
         </TableBody>

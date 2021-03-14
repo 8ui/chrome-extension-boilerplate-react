@@ -20,6 +20,7 @@ s.onload = function() {
 
 window.addEventListener("message", function({ data: {event, payload}, ...props }) {
   if (event === 'content') {
+    console.log('@content', payload);
     switch (payload.type) {
       case 'badge': {
         const request = {type: 'badge', payload: payload.payload}
