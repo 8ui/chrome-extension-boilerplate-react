@@ -4,6 +4,8 @@ let active;
 let counter = 0;
 let storage = {}
 let leftMovieCount = 0;
+let fetchResolve;
+let fetchReject;
 const idErrorPanel = 'alert-danger'
 const idSuccessPanel = 'alert-success'
 const idEmailPanel = "#navbarSupportedContent > ul > li.line-height.pt-3 > div > div > div > div.bg-primary.p-3 > span"
@@ -14,14 +16,31 @@ const onInit = async() => {
   await sendLeftMovie();
 }
 
-window.addEventListener("message", function({ data: {event, payload}, ...props }) {
+window.addEventListener("message", function({ data: {event, type, payload}, ...props }) {
   if (!checkVideoPage()) return false;
   if (event === 'inject') {
-    console.log('pong.inject', {event, payload});
-    storage = payload;
-    if (storage.active) checkAfterLoginPage();
-    if (storage.active) startCounter();
-    else stopCounter();
+    // console.log('pong.inject', {event, payload});
+
+    switch (type) {
+      case 'storage': {
+        if (storage.active === undefined) {
+          storage = payload;
+          if (storage.active) checkAfterLoginPage();
+          if (storage.active) startCounter();
+          else stopCounter();
+        }
+        break;
+      }
+      case 'fetch/resolve': {
+        fetchResolve = payload;
+        break;
+      }
+      case 'fetch/reject': {
+        fetchReject = payload;
+        break;
+      }
+      default:
+    }
   }
 });
 
@@ -30,7 +49,7 @@ const sendMessage = (payload) => {
     event: 'content',
     payload
   }
-  console.log('postMessage', data);
+  // console.log('postMessage', data);
   window.postMessage(data, "*");
 }
 
@@ -71,12 +90,16 @@ const checkPageSuccess = () => {
   return viewedMovieError() || document.getElementsByClassName(idSuccessPanel).length > 0;
 }
 
+const clickNextVideo = async() => {
+  const {href} = document.getElementsByClassName('YouTubeLink')[0]
+  if (href) window.location.href = href;
+}
+
 const playNextVideo = async() => {
   if (checkPageErrors() && leftMovieCount <= 0) active = false;
   if (active) {
     if ((await setViewed())) {
-      const {href} = document.getElementsByClassName('YouTubeLink')[0]
-      if (href) window.location.href = href;
+      clickNextVideo();
     }
   }
 }
@@ -95,7 +118,7 @@ const initMainPage = () => {
   const start = GetParameterValues("start");
   if (!checkVideoPage() && start) {
     active = true;
-    playNextVideo();
+    clickNextVideo();
   }
 }
 
@@ -111,7 +134,7 @@ function sleep(ms) {
 }
 
 const startCounter = () => {
-  console.log('@startCounter');
+  // console.log('@startCounter');
   active = true;
   let interval = setInterval(async() => {
     if (window.player) {
@@ -124,51 +147,78 @@ const startCounter = () => {
   }, 100);
 
   const nextVideoInterval = setInterval(async() => {
+    // console.log('nextVideoInterval');
     if (window.credited && checkPageSuccess()) {
       clearInterval(nextVideoInterval);
-      // await sleep(500);
+      await sleep(500);
       playNextVideo();
     }
     if (counter >= 60) {
       clearInterval(nextVideoInterval);
-      playNextVideo();
+      await sleep(500);
+      clickNextVideo();
     }
     counter += 1;
   }, 1000);
 }
 
 const setViewed = async() => {
+  if (fetchResolve || fetchReject) return false;
   try {
-    console.log('document.querySelector(idEmailPanel)', document.querySelector(idEmailPanel));
     const movieId = GetParameterValues("v");
     if (!movieId) return true;
-    let r = await window.fetch('http://localhost:8081/v2/viewed', {
-      method: 'POST',
-      body: JSON.stringify({
-        movieId,
-        license: storage.license.id,
-        deviceUuid: storage.deviceUuid,
-        email: document.querySelector(idEmailPanel)?.innerText,
-      }),
-      headers: {
-        "Content-type": "application/json",
-      }
+    const r = await new Promise((resolve, reject) => {
+      sendMessage({
+        type: 'fetch',
+        payload: {
+          url: 'https://213.139.208.207/v2/viewed',
+          params: {
+            method: 'POST',
+            body: JSON.stringify({
+              movieId,
+              license: storage.license.id,
+              deviceUuid: storage.deviceUuid,
+              email: document.querySelector(idEmailPanel)?.innerText,
+            }),
+            headers: {
+              "Content-type": "application/json",
+            }
+          }
+        }
+      })
+
+      let count = 0;
+      const fetchResponse = setInterval(async() => {
+        if (fetchResolve || fetchReject) {
+          clearInterval(fetchResponse);
+        }
+        if (fetchResolve) {
+          resolve(fetchResolve);
+        }
+        if (fetchReject) {
+          reject(fetchReject);
+        }
+        if (count >= 5) {
+          reject()
+        }
+        count += 0.5;
+      }, 500);
     })
-    r = await r.json();
     if (r.code === 400) return false;
-  }  catch (e) {
+  } catch (e) {
+    // console.log(e);
     return true;
   }
   return true;
 }
 
 const stopCounter = () => {
-  console.log('@stopCounter');
+  // console.log('@stopCounter');
   active = false;
 }
 
 const onblur = async() => {
-  console.log('@window.onblur');
+  // console.log('@window.onblur');
   if (window.player && active) {
     await sleep(50)
     window.player.playVideo();

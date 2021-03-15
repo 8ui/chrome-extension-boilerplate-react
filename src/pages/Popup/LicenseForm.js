@@ -17,7 +17,7 @@ const LicenseForm = () => {
       const data = await Store.registerDevice(license);
       console.log('data', data);
     } catch (e) {
-      setError(String(e));
+      setError(String(e.message));
     }
     setLoading(false);
   }

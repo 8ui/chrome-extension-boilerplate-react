@@ -81,7 +81,8 @@ export const Store = types
           license,
         },
       })
-      if (data.message) throw new Error(data.message);
+      console.log('code', data);
+      if (data.code) throw data;
       if (data.device) {
         applySnapshot(self.license, data.license)
         applySnapshot(self.device, data.device)
@@ -95,9 +96,11 @@ export const Store = types
     checkDevice: flow(function * checkLicense() {
       if (self.license.id) {
         try {
-          const { license, device, freeDevices, viewed } = yield self.fetch(`/device/check/${self.deviceUuid}`);
-          applySnapshot(self.license, license)
-          applySnapshot(self.device, device)
+          const r = yield self.fetch(`/device/check/${self.deviceUuid}`);
+          if (r.code) throw r;
+          const { license, device, freeDevices, viewed, code } = r;
+          applySnapshot(self.license, license);
+          applySnapshot(self.device, device);
           self.freeDevices = freeDevices;
           self.newVersion = yield self.getVersion();
           self.viewed = viewed;

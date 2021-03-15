@@ -41,14 +41,14 @@ const LicenseInfo = () => {
               {license.getType}
             </TableCell>
           </TableRow>
-          <TableRow>
-            <TableCell component="th" scope="row">
-              Истекает
-            </TableCell>
-            <TableCell align="right">
-              {license.getExpireDate}
-            </TableCell>
-          </TableRow>
+          {/*<TableRow>*/}
+          {/*  <TableCell component="th" scope="row">*/}
+          {/*    Истекает*/}
+          {/*  </TableCell>*/}
+          {/*  <TableCell align="right">*/}
+          {/*    {license.getExpireDate}*/}
+          {/*  </TableCell>*/}
+          {/*</TableRow>*/}
           <TableRow>
             <TableCell component="th" scope="row">
               Просмотрено видео
