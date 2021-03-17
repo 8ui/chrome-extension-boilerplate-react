@@ -63,9 +63,8 @@ export const Store = types
       self.active = !self.active;
       if (self.active) {
         chrome.tabs.query({active: true, currentWindow: true}, ([tab]) => {
-          console.log('tab', tab);
           if (tab.url.match(/^https:\/\/taskpays\.com/)) {
-            chrome.tabs.update(tab.id, {url: startUrl});
+            chrome.tabs.update(tab.id, { url: startUrl });
           } else {
             chrome.tabs.create({ url: startUrl });
           }
@@ -81,7 +80,6 @@ export const Store = types
           license,
         },
       })
-      console.log('code', data);
       if (data.code) throw data;
       if (data.device) {
         applySnapshot(self.license, data.license)
@@ -96,16 +94,15 @@ export const Store = types
     checkDevice: flow(function * checkLicense() {
       if (self.license.id) {
         try {
+          self.newVersion = yield self.getVersion();
           const r = yield self.fetch(`/device/check/${self.deviceUuid}`);
           if (r.code) throw r;
-          const { license, device, freeDevices, viewed, code } = r;
+          const { license, device, freeDevices, viewed } = r;
           applySnapshot(self.license, license);
           applySnapshot(self.device, device);
           self.freeDevices = freeDevices;
-          self.newVersion = yield self.getVersion();
           self.viewed = viewed;
         } catch (e) {
-          console.log('e', e);
           if (e?.code === 404) {
             applySnapshot(self.license, {})
             applySnapshot(self.device, {})
@@ -119,7 +116,7 @@ export const Store = types
     }),
     getVersion: flow(function * getVersion() {
       const {version} = yield self.fetch('/version');
-      console.log('version', version);
+      // console.log('version', version);
       // if (version) self.version = version;
       return version;
     }),
@@ -146,7 +143,7 @@ export const initStorage = async() => {
   onSnapshot(rootStore, (snapshot) => {
     chrome.storage.sync.set(snapshot, function(...props) {
       // Notify that we saved.
-      console.log('Storage saved');
+      // console.log('Storage saved');
     });
   });
 

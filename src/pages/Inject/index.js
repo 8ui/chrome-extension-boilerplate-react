@@ -96,6 +96,7 @@ const clickNextVideo = async() => {
 }
 
 const playNextVideo = async() => {
+  if (active === false) return false;
   if (checkPageErrors() && leftMovieCount <= 0) active = false;
   if (active) {
     if ((await setViewed())) {
@@ -134,10 +135,10 @@ function sleep(ms) {
 }
 
 const startCounter = () => {
-  // console.log('@startCounter');
+  console.log('@startCounter');
   active = true;
   let interval = setInterval(async() => {
-    if (window.player) {
+    if (window.player.playVideo) {
       clearInterval(interval);
       await sleep(800);
       window.focus();
@@ -147,7 +148,11 @@ const startCounter = () => {
   }, 100);
 
   const nextVideoInterval = setInterval(async() => {
-    // console.log('nextVideoInterval');
+    if (checkPageErrors()) {
+      clearInterval(nextVideoInterval);
+      active = false
+      return false;
+    }
     if (window.credited && checkPageSuccess()) {
       clearInterval(nextVideoInterval);
       await sleep(500);
