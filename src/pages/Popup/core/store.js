@@ -122,7 +122,10 @@ export const Store = types
     }),
     fetch: flow(function * fetch(url, params) {
       return Fetch(url, { ...params, headers: { license: self.license.key } })
-    })
+    }),
+    exit() {
+      applySnapshot(self, StoreInitialState);
+    }
   }));
 
 export const initStorage = async() => {

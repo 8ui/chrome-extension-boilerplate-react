@@ -1,4 +1,6 @@
 /* eslint-disable */
+export const ISDEV = !process.env.NODE_ENV
+  || process.env.NODE_ENV === 'development';
 
 let active;
 let counter = 0;
@@ -6,6 +8,8 @@ let storage = {}
 let leftMovieCount = 0;
 let fetchResolve;
 let fetchReject;
+let viewed;
+let api = ISDEV ? 'http://localhost:8081' : 'https://213.139.208.207'
 const idErrorPanel = 'alert-danger'
 const idSuccessPanel = 'alert-success'
 const idEmailPanel = "#navbarSupportedContent > ul > li.line-height.pt-3 > div > div > div > div.bg-primary.p-3 > span"
@@ -19,14 +23,13 @@ const onInit = async() => {
 window.addEventListener("message", function({ data: {event, type, payload}, ...props }) {
   if (!checkVideoPage()) return false;
   if (event === 'inject') {
-    // console.log('pong.inject', {event, payload});
-
     switch (type) {
       case 'storage': {
         if (storage.active === undefined) {
           storage = payload;
-          if (storage.active) checkAfterLoginPage();
-          if (storage.active) startCounter();
+          active = storage.active;
+          if (active) checkAfterLoginPage();
+          if (active) startCounter();
           else stopCounter();
         }
         break;
@@ -70,9 +73,14 @@ const checkVideoPage = () => {
   return window.location.href.match(/youtube.aspx\?v\=/);
 }
 
-const viewedMovieError = () => {
+const getViewedMovieErrorText = () => {
   const panel = document.getElementsByClassName(idErrorPanel);
-  if (panel?.[0]?.innerText === "You already have been credited for this video.") {
+  return panel?.[0]?.innerText
+}
+
+const viewedMovieError = () => {
+  const errorText = getViewedMovieErrorText();
+  if (errorText === "You already have been credited for this video.") {
     return true;
   }
   return false;
@@ -90,7 +98,7 @@ const checkPageSuccess = () => {
   return viewedMovieError() || document.getElementsByClassName(idSuccessPanel).length > 0;
 }
 
-const clickNextVideo = async() => {
+const clickNextVideo = () => {
   const {href} = document.getElementsByClassName('YouTubeLink')[0]
   if (href) window.location.href = href;
 }
@@ -99,9 +107,8 @@ const playNextVideo = async() => {
   if (active === false) return false;
   if (checkPageErrors() && leftMovieCount <= 0) active = false;
   if (active) {
-    if ((await setViewed())) {
-      clickNextVideo();
-    }
+    await activeViewed(true)
+    clickNextVideo();
   }
 }
 
@@ -134,91 +141,99 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const startCounter = () => {
+const startCounter = async() => {
   console.log('@startCounter');
-  active = true;
-  let interval = setInterval(async() => {
-    if (window.player.playVideo) {
-      clearInterval(interval);
-      await sleep(800);
-      window.focus();
-      window.player.playVideo()
-      window.player.setVolume(0);
-    }
-  }, 100);
+  try {
+    await setViewed();
+    let interval = setInterval(async() => {
+      if (window.player.playVideo) {
+        clearInterval(interval);
+        await sleep(800);
+        window.focus();
+        window.player.playVideo()
+        window.player.setVolume(0);
+      }
+    }, 100);
 
-  const nextVideoInterval = setInterval(async() => {
-    if (checkPageErrors()) {
-      clearInterval(nextVideoInterval);
-      active = false
-      return false;
+    const nextVideoInterval = setInterval(async() => {
+      console.log('checkPageErrors()', checkPageErrors(), getViewedMovieErrorText());
+      if (checkPageErrors()) {
+        clearInterval(nextVideoInterval);
+        active = false;
+        await activeViewed(false);
+        window.player.stopVideo();
+        return false;
+      }
+      if (window.credited && checkPageSuccess()) {
+        clearInterval(nextVideoInterval);
+        await sleep(500);
+        playNextVideo();
+      }
+      if (counter >= 60) {
+        clearInterval(nextVideoInterval);
+        await sleep(100);
+        await activeViewed(false, 'timeout');
+        clickNextVideo();
+      }
+      counter += 1;
+    }, 1000);
+  } catch (e) {
+    console.log('e.code', e.code);
+    switch (e.code) {
+      case 400: alert(`Ошибка плагина TaskPays Clicker:\n${String(e.message)}`); break;
+      case 226: clickNextVideo(); break;
+      default:
     }
-    if (window.credited && checkPageSuccess()) {
-      clearInterval(nextVideoInterval);
-      await sleep(500);
-      playNextVideo();
-    }
-    if (counter >= 60) {
-      clearInterval(nextVideoInterval);
-      await sleep(500);
-      clickNextVideo();
-    }
-    counter += 1;
-  }, 1000);
+  }
 }
 
 const setViewed = async() => {
   if (fetchResolve || fetchReject) return false;
-  try {
-    const movieId = GetParameterValues("v");
-    if (!movieId) return true;
-    const r = await new Promise((resolve, reject) => {
-      sendMessage({
-        type: 'fetch',
-        payload: {
-          url: 'https://213.139.208.207/v2/viewed',
-          params: {
-            method: 'POST',
-            body: JSON.stringify({
-              movieId,
-              license: storage.license.id,
-              deviceUuid: storage.deviceUuid,
-              email: document.querySelector(idEmailPanel)?.innerText,
-            }),
-            headers: {
-              "Content-type": "application/json",
-            }
-          }
-        }
-      })
 
-      let count = 0;
-      const fetchResponse = setInterval(async() => {
-        if (fetchResolve || fetchReject) {
-          clearInterval(fetchResponse);
-        }
-        if (fetchResolve) {
-          resolve(fetchResolve);
-        }
-        if (fetchReject) {
-          reject(fetchReject);
-        }
-        if (count >= 5) {
-          reject()
-        }
-        count += 0.5;
-      }, 500);
+  const movieId = GetParameterValues("v");
+  if (!movieId) return true;
+  viewed = await fetchData('/v2/viewed', {
+    method: 'POST',
+    body: JSON.stringify({
+      movieId,
+      license: storage.license.id,
+      deviceUuid: storage.deviceUuid,
+      email: document.querySelector(idEmailPanel)?.innerText,
     })
-    if (r.code === 400) return false;
+  })
+  return viewed;
+}
+
+const activeViewed = async(active, errorText) => {
+  console.log('activeViewed', active, errorText);
+  try {
+    await fetchData(`/v2/viewed/${viewed.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        active,
+        errorMessage: errorText || getViewedMovieErrorText() || '',
+      })
+    })
   } catch (e) {
-    // console.log(e);
-    return true;
+    console.log('activeViewed', e);
   }
-  return true;
+}
+
+const fetchData = async (url, params) => {
+  console.log('fetchData', { url, params });
+  let r = await window.fetch(`${api}${url}`, {
+    ...params,
+    headers: {
+      "Content-type": "application/json",
+    }
+  });
+  r = await r.json();
+  console.log('fetchData', r);
+  if (r.code) throw r;
+  return r;
 }
 
 const stopCounter = () => {
-  // console.log('@stopCounter');
   active = false;
 }
 

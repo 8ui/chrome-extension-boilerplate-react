@@ -8,29 +8,41 @@ import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
 import TableContainer from "@material-ui/core/TableContainer";
 import TableRow from "@material-ui/core/TableRow";
+import Typography from '@material-ui/core/Typography';
+import Link from '@material-ui/core/Link';
 
 
 const useStyles = makeStyles(theme => ({
   root: {
     padding: theme.spacing(2),
+  },
+  licenseText: {
+    display: 'flex',
+    justifyContent: 'space-between'
   }
 }))
 
 const LicenseInfo = () => {
   const classes = useStyles()
-  const { license, viewed } = useMst();
+  const { license, viewed, exit } = useMst();
   if (!license.id) return null;
+
+  const handleExit = (e) => {
+    e.preventDefault();
+    exit();
+  }
 
   return (
     <TableContainer className={classes.root}>
       <Table size="small">
         <TableBody>
           <TableRow>
-            <TableCell component="th" scope="row">
-              Лицензия
-            </TableCell>
-            <TableCell align="right">
-              {license.key}
+            <TableCell colSpan={2} component="th" scope="row">
+              <Typography gutterBottom variant="subtitle2">Лицензия</Typography>
+              <Typography gutterBottom variant="body1" className={classes.licenseText}>
+                <span>{license.key}</span>
+                <Link href="#" className={classes.exitLink} onClick={handleExit}>сменить</Link>
+              </Typography>
             </TableCell>
           </TableRow>
           <TableRow>

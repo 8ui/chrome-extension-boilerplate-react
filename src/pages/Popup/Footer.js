@@ -17,6 +17,9 @@ const useStyles = makeStyles(theme => ({
   version: {
     color: theme.palette.text.secondary,
     textAlign: 'center',
+  },
+  exitLink: {
+    color: theme.palette.warning.main,
   }
 }))
 
@@ -26,20 +29,10 @@ const Footer = () => {
 
   return (
     <>
-      {/*<Typography variant="subtitle2" component="div" className={classes.root}>*/}
-      {/*  {Store.license.id ? (*/}
-      {/*    <div>*/}
-      {/*      Устройства<br />*/}
-      {/*      подключены {Store.license.devices - Store.freeDevices} из {Store.license.devices}*/}
-      {/*    </div>*/}
-      {/*  ) : null}*/}
-      {/*  <div>*/}
-      {/*    Поддержка <Link href='mailto:webdeveloper@my.com'>webdeveloper@my.com</Link>*/}
-      {/*  </div>*/}
-      {/*</Typography>*/}
       {Store.version !== '0.0.1' && (
         <Typography variant="caption" className={classes.version}>
-          Версия {Store.version} • Telegram Bot <Link target="_blank" href="https://t.me/TaskPaysClickerBot">@TaskPaysClickerBot</Link>
+          Версия {Store.version}{' '}
+          • Telegram Bot <Link target="_blank" href="https://t.me/TaskPaysClickerBot">@TaskPaysClickerBot</Link>{' '}
         </Typography>
       )}
     </>
